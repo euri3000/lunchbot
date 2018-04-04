@@ -83,7 +83,6 @@ app.post('/commands', (req, res) => {
       console.log(lunchGorupUserList);
       const isIn = isInGroup(req.body.user_name);
       if (isIn.toString() === 'true') {
-        console.log("hitting in");
         messageText = 'You are already joined in today lunch group!';
         const message = {
           token: process.env.SLACK_ACCESS_TOKEN,
@@ -147,9 +146,25 @@ app.post('/commands', (req, res) => {
             debug('chat.postMessage call failed: %o', err);
             res.sendStatus(500);
           });
+      } else {
+        messageText = 'You did not join the group!';
+        const message = {
+          token: process.env.SLACK_ACCESS_TOKEN,
+          channel: channel_id,
+          user: user.user_id,
+          text: messageText,
+        };
+
+        axios.post('https://slack.com/api/chat.postEphemeral', qs.stringify(message))
+          .then((result) => {
+            debug('chat.postEphemeral: %o', result.data);
+            res.send('');
+          }).catch((err) => {
+            debug('chat.postEphemeral call failed: %o', err);
+            res.sendStatus(500);
+          });
       }
     }
-    // open the dialog by calling dialogs.open method and sending the payload
   } else {
     debug('Verification token mismatch');
     res.sendStatus(500);
