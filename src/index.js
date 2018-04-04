@@ -21,7 +21,7 @@ app.get('/', (req, res) => {
 });
 
 /*
- * Endpoint to receive /helpdesk slash command from Slack.
+ * Endpoint to receive /lunchbot slash command from Slack.
  * Checks verification token and opens a dialog to capture more info.
  */
 app.post('/commands', (req, res) => {
@@ -33,40 +33,29 @@ app.post('/commands', (req, res) => {
   if (token === process.env.SLACK_VERIFICATION_TOKEN) {
     // create the dialog payload - includes the dialog structure, Slack API token,
     // and trigger ID
-    const dialog = {
-      token: process.env.SLACK_ACCESS_TOKEN,
-      trigger_id,
-      dialog: JSON.stringify({
-        title: 'Submit a helpdesk ticket',
-        callback_id: 'submit-ticket',
-        submit_label: 'Submit',
-        elements: [
-          {
-            label: 'Title',
-            type: 'text',
-            name: 'title',
-            value: text,
-            hint: '30 second summary of the problem',
-          },
-          {
-            label: 'Description',
-            type: 'textarea',
-            name: 'description',
-            optional: true,
-          },
-          {
-            label: 'Urgency',
-            type: 'select',
-            name: 'urgency',
-            options: [
-              { label: 'Low', value: 'Low' },
-              { label: 'Medium', value: 'Medium' },
-              { label: 'High', value: 'High' },
-            ],
-          },
-        ],
-      }),
-    };
+    const command = text.split(" ");
+    let dialog = {};
+    if (command[0] == 'create') {
+      console.log('command: ' + command[0]);
+      dialog = {
+        token: process.env.SLACK_ACCESS_TOKEN,
+        trigger_id,
+        dialog: JSON.stringify({
+          title: 'Lunchbot',
+          callback_id: 'lunchbot',
+          submit_label: 'Submit',
+          elements: [
+            {
+              label: 'Time',
+              type: 'text',
+              name: 'time',
+              value: command[1],
+              hint: 'What time do you want to eat lunch?',
+            },
+          ],
+        }),
+      }; 
+    }
 
     // open the dialog by calling dialogs.open method and sending the payload
     axios.post('https://slack.com/api/dialog.open', qs.stringify(dialog))
