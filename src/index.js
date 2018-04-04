@@ -10,7 +10,11 @@ const debug = require('debug')('slash-command-template:index');
 const app = express();
 
 let lunchGorupUserList = [];
-let lunchtTime = "12:00";
+let lunchTime = new Date();
+let lunchReminderTime = new Date();
+lunchReminderTime.setMinutes(lunchTime.getMinutes() + 1);
+let where = "Kuu ramen, John st."
+let channelId = '';
 /*
  * Parse application/x-www-form-urlencoded && application/json
  */
@@ -40,11 +44,18 @@ app.post('/commands', (req, res) => {
       user_id: req.body.user_id,
       user_name: req.body.user_name,
     }
-    console.log(lunchGorupUserList);
+    channelId = channel_id;
+    console.log("channel_id: " + channelId);
     let messageText;
     let dialog = {};
     if (command[0] == 'create') {
       console.log('command: ' + command[0]);
+      const inputLunchTime = command[1].replace('/PM', '/').replace('/AM', '/').replace('/pM', '/').replace('/aM', '/').split(":");
+      lunchTime.setHours(inputLunchTime[0]);
+      lunchTime.setMinutes(inputLunchTim[1]);
+      lunchReminderTime.setHours(inputLunchTime[0]);
+      lunchReminderTime.setMinutes(inputLunchTime[1] - 5);
+      
       dialog = {
         token: process.env.SLACK_ACCESS_TOKEN,
         trigger_id,
@@ -90,7 +101,7 @@ app.post('/commands', (req, res) => {
           user: user.user_id,
           text: messageText,
           attachments: [{
-            "text": "Today lunch time is " + lunchtTime + ". \n with " + lunchGorupUserList
+            "text": "Today lunch time is " + lunchTime + ". \n with " + lunchGorupUserList
           }]
         };
         axios.post('https://slack.com/api/chat.postEphemeral', qs.stringify(message))
@@ -110,7 +121,7 @@ app.post('/commands', (req, res) => {
           channel: channel_id,
           text: messageText,
           attachments: [{
-            "text": "Today lunch time is " + lunchtTime + ". \n with " + lunchGorupUserList
+            "text": "Today lunch time is " + lunchTime + ". \n with " + lunchGorupUserList
           }]
         };
         axios.post('https://slack.com/api/chat.postMessage', qs.stringify(message))
@@ -135,7 +146,7 @@ app.post('/commands', (req, res) => {
           channel: channel_id,
           text: messageText,
           attachments: [{
-            "text": "Today lunch time is " + lunchtTime + ". \n with " + lunchGorupUserList
+            "text": "Today lunch time is " + lunchTime + ". \n with " + lunchGorupUserList
           }]
         };
         axios.post('https://slack.com/api/chat.postMessage', qs.stringify(message))
@@ -202,26 +213,36 @@ app.post('/interactive-component', (req, res) => {
   }
 });
 
-app.post('/test', (req, res) => {
-  const message = {
-    "type": "message",
-    "subtype": "bot_message",
-    "ts": "1358877455.000010",
-    "text": "Pushing is the answer",
-    "bot_id": "BB12033",
-    "username": "github",
-    "icons": {}
-  };
-    axios.post('https://slack.com/api/bot_message', qs.stringify(message))
-      .then((result) => {
-        debug('dialog.open: %o', result.data);
-        res.send('');
-      }).catch((err) => {
-        debug('dialog.open call failed: %o', err);
-        res.sendStatus(500);
-      });
-})
-
 app.listen(process.env.PORT, () => {
   console.log(`App listening on port ${process.env.PORT}!`);
 });
+
+let i = 0;
+setInterval(() => {
+  const now = new Date();
+  console.log('current getTime:', lunchReminderTime.getTime() - now.getTime());
+  console.log("here channel_id: " + channelId);
+  //TODO: check if group is created. 
+  if (now.getTime() > lunchReminderTime.getTime() && lunchGorupUserList.length > 0) {
+    console.log("TIME TO LEAVE!!!!!!!!! FOR LUNCH!!!");
+    messageText = '@here It\'s time to leave for lunch!'
+    const message = {
+      token: process.env.SLACK_ACCESS_TOKEN,
+      response_type: "in_channel",
+      channel: channelId,
+      text: messageText,
+      attachments: [{
+        "where": where,
+        "list": lunchGorupUserList,
+      }]
+    };
+    axios.post('https://slack.com/api/chat.postMessage', qs.stringify(message))
+      .then((result) => {
+        lunchGorupUserList = [];
+        debug('chat.postMessage: %o', result.data);
+      }).catch((err) => {
+        console.log(result.err);
+        debug('chat.postMessage call failed: %o', err);
+      });
+  }
+}, 10000)
