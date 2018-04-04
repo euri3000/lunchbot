@@ -1,31 +1,31 @@
 const axios = require('axios');
-const debug = require('debug')('slash-command-template:ticket');
+const debug = require('debug')('lunchbot:lunch');
 const qs = require('querystring');
 const users = require('./users');
 
 /*
- *  Send ticket creation confirmation via
+ *  Send lunch creation confirmation via
  *  chat.postMessage to the user who created it
  */
-const sendConfirmation = (ticket) => {
+const sendConfirmation = (lunch) => {
   axios.post('https://slack.com/api/chat.postMessage', qs.stringify({
     token: process.env.SLACK_ACCESS_TOKEN,
-    channel: ticket.userId,
-    text: 'Helpdesk ticket created!',
+    channel: lunchbot.userId,
+    text: 'Lunch event has started!',
     attachments: JSON.stringify([
       {
-        title: `Ticket created for ${ticket.userEmail}`,
+        title: `Lunch event for ${lunch.userEmail}`,
         // Get this from the 3rd party helpdesk system
         title_link: 'http://example.com',
-        text: ticket.text,
+        text: lunch.text,
         fields: [
           {
-            title: 'Title',
-            value: ticket.title,
+            title: 'Lunch',
+            value: lunch.title,
           },
           {
-            title: 'Description',
-            value: ticket.description || 'None provided',
+            title: 'Start Time',
+            value: lunch.start_time || 'None provided',
           },
           {
             title: 'Status',
@@ -33,8 +33,8 @@ const sendConfirmation = (ticket) => {
             short: true,
           },
           {
-            title: 'Urgency',
-            value: ticket.urgency,
+            title: 'Restaurant Choices',
+            value: lunch.choices,
             short: true,
           },
         ],
@@ -48,10 +48,10 @@ const sendConfirmation = (ticket) => {
   });
 };
 
-// Create helpdesk ticket. Call users.find to get the user's email address
+// Create lunch. Call users.find to get the user's email address
 // from their user ID
 const create = (userId, submission) => {
-  const ticket = {};
+  const lunch = {};
 
   const fetchUserEmail = new Promise((resolve, reject) => {
     users.find(userId).then((result) => {
@@ -61,14 +61,15 @@ const create = (userId, submission) => {
   });
 
   fetchUserEmail.then((result) => {
-    ticket.userId = userId;
-    ticket.userEmail = result;
-    ticket.title = submission.title;
-    ticket.description = submission.description;
-    ticket.urgency = submission.urgency;
-    sendConfirmation(ticket);
+    lunch.userId = userId;
+    lunch.userEmail = result;
+    lunch.name = submission.name;
+    lunch.status = '';
+    lunch.start_time = submission.start_time;
+    lunch.choices = '';
+    sendConfirmation(lunch);
 
-    return ticket;
+    return lunch;
   }).catch((err) => { console.error(err); });
 };
 
