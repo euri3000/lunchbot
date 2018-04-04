@@ -4,7 +4,7 @@ const axios = require('axios');
 const express = require('express');
 const bodyParser = require('body-parser');
 const qs = require('querystring');
-const ticket = require('./ticket');
+const lunch = require('./lunch');
 const debug = require('debug')('slash-command-template:index');
 
 const app = express();
@@ -51,14 +51,21 @@ app.post('/commands', (req, res) => {
         dialog: JSON.stringify({
           title: 'Lunchbot',
           callback_id: 'lunchbot',
-          submit_label: 'Submit',
+          submit_label: 'Create',
           elements: [
             {
               label: 'Time',
               type: 'text',
-              name: 'time',
+              name: 'start_time',
               value: command[1],
               hint: 'What time do you want to eat lunch?',
+            },
+            {
+              label: 'Lunch name',
+              type: 'text',
+              name: 'name',
+              value: '',
+              hint: 'What should today\'s lunch be called?',
             },
           ],
         }),
@@ -159,7 +166,7 @@ function isInGroup(user_name) {
 }
 /*
  * Endpoint to receive the dialog submission. Checks the verification token
- * and creates a Helpdesk ticket
+ * and creates a LunchBot instance
  */
 app.post('/interactive-component', (req, res) => {
   const body = JSON.parse(req.body.payload);
@@ -172,8 +179,8 @@ app.post('/interactive-component', (req, res) => {
     // Slack know the command was received
     res.send('');
 
-    // create Helpdesk ticket
-    ticket.create(body.user.id, body.submission);
+    // create LunchBot instance
+    lunch.create(body.user.id, body.submission);
   } else {
     debug('Token mismatch');
     res.sendStatus();
