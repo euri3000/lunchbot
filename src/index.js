@@ -64,11 +64,11 @@ app.post('/commands', (req, res) => {
     let dialog = {};
     if (command[0] == 'create') {
       console.log('command: ' + command[0]);
-      const inputLunchTime = command[1].replace('/PM', '/').replace('/AM', '/').replace('/pM', '/').replace('/aM', '/').split(":");
-      lunchTime.setHours(inputLunchTime[0]);
-      lunchTime.setMinutes(inputLunchTime[1]);
-      lunchReminderTime.setHours(inputLunchTime[0]);
-      lunchReminderTime.setMinutes(inputLunchTime[1] - 5);
+      // const inputLunchTime = command[1].replace('/PM', '/').replace('/AM', '/').replace('/pM', '/').replace('/aM', '/').split(":");
+      // lunchTime.setHours(inputLunchTime[0]);
+      // lunchTime.setMinutes(inputLunchTime[1]);
+      // lunchReminderTime.setHours(inputLunchTime[0]);
+      // lunchReminderTime.setMinutes(inputLunchTime[1] - 5);
       
       dialog = {
         token: process.env.SLACK_ACCESS_TOKEN,
@@ -103,25 +103,11 @@ app.post('/commands', (req, res) => {
           debug('dialog.open call failed: %o', err);
           res.sendStatus(500);
         });
-      messageText = '<@' + user.user_id + '> just created the lunch group ' + lunchName + '! Lunch starts at ' + lunchTime + '.';
-        const message = {
-          token: process.env.SLACK_ACCESS_TOKEN,
-          response_type: "in_channel",
-          channel: channel_id,
-          text: messageText,
-        };
-      axios.post('https://slack.com/api/chat.postMessage', qs.stringify(message))
-          .then((result) => {
-            debug('chat.postMessage: %o', result.data);
-            res.send('');
-          }).catch((err) => {
-            debug('chat.postMessage call failed: %o', err);
-            res.sendStatus(500);
-          });
+      setTimeout(function(){postConfirmationMessage(user, lunchName, lunchTime, channel_id);},10000);
     } else if (command[0] === 'join') {
       const isIn = isInGroup(req.body.user_name);
       if (isIn.toString() === 'true') {
-        messageText = 'You are already joined in today lunch group! \n Today lunch time is " + lunchTime + ". \n with " + lunchGroupUserList';
+        messageText = "You are already joined in today lunch group! \n Today lunch time is " + lunchTime.getHours() + ":" + lunchTime.getMinutes() + ". \n with " + lunchGroupUserList;
         const message = {
           token: process.env.SLACK_ACCESS_TOKEN,
           channel: channel_id,
@@ -254,6 +240,23 @@ function getFormattedText(restaurantList) {
   });
   return restaurantListString;
 }
+function postConfirmationMessage(user, lunchName, lunchTime, channel_id) {
+  messageText = '<@' + user.user_id + '> just created the lunch group ' + lunchName + '! Lunch starts at ' + lunchTime.getHours() + ":" + lunchTime.getMinutes() + '.';
+        const message = {
+          token: process.env.SLACK_ACCESS_TOKEN,
+          response_type: "in_channel",
+          channel: channel_id,
+          text: messageText,
+        };
+      axios.post('https://slack.com/api/chat.postMessage', qs.stringify(message))
+          .then((result) => {
+            debug('chat.postMessage: %o', result.data);
+            res.send('');
+          }).catch((err) => {
+            debug('chat.postMessage call failed: %o', err);
+            res.sendStatus(500);
+          });
+}
 /*
  * Endpoint to receive the dialog submission. Checks the verification token
  * and creates a LunchBot instance
@@ -271,6 +274,14 @@ app.post('/interactive-component', (req, res) => {
 
     // update Lunch info
     lunchName = body.submission.name;
+    let lunchInputTime = body.submission.start_time;
+    var parts = lunchInputTime.split(':');
+    var minutes = parts[1];
+    var hours = parts[0];
+    lunchTime.setHours(hours);
+    lunchTime.setMinutes(minutes);
+    console.log('Lunch time: ' + lunchTime);
+
   } else {
     debug('Token mismatch');
     res.sendStatus();
