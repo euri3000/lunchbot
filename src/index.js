@@ -101,7 +101,7 @@ app.post('/commands', (req, res) => {
     } else if (command[0] === 'join') {
       const isIn = isInGroup(req.body.user_name);
       if (isIn.toString() === 'true') {
-        messageText = 'You are already joined in today lunch group! \n Today lunch time is ' + lunchTime.getHours() + ":" + lunchTime.getMinutes() + '. \n with ' + lunchGorupUserListToStringUserName(lunchGorupUserList);
+        messageText = 'You are already joined in today lunch group! \n Today lunch time is ' + lunchTime.getHours() + ":" + lunchTime.getMinutes() + '. \n with ' + lunchGorupUserListToStringUserName(lunchGroupUserList);
         const message = {
           token: process.env.SLACK_ACCESS_TOKEN,
           channel: channel_id,
@@ -307,7 +307,7 @@ setInterval(() => {
     console.log("TIME TO LEAVE!!!!!!!!! FOR LUNCH!!!");
     findRestaurant(function (restaurantList) {
       console.log(restaurantList);
-      messageText = '<@here> :alert:  It\'s time to leave for lunch! :alert: \n'
+      messageText = lunchGorupUserListToStringUserName(lunchGroupUserList)+ ' :alert:  It\'s time to leave for lunch! :alert: \n'
       const message = {
         token: process.env.SLACK_ACCESS_TOKEN,
         response_type: "in_channel",
