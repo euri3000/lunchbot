@@ -103,7 +103,21 @@ app.post('/commands', (req, res) => {
           debug('dialog.open call failed: %o', err);
           res.sendStatus(500);
         });
-
+      messageText = '<@' + user.user_id + '> just created the lunch group ' + lunchName + '! Lunch starts at ' + lunchTime + '.';
+        const message = {
+          token: process.env.SLACK_ACCESS_TOKEN,
+          response_type: "in_channel",
+          channel: channel_id,
+          text: messageText,
+        };
+      axios.post('https://slack.com/api/chat.postMessage', qs.stringify(message))
+          .then((result) => {
+            debug('chat.postMessage: %o', result.data);
+            res.send('');
+          }).catch((err) => {
+            debug('chat.postMessage call failed: %o', err);
+            res.sendStatus(500);
+          });
     } else if (command[0] === 'join') {
       const isIn = isInGroup(req.body.user_name);
       if (isIn.toString() === 'true') {
