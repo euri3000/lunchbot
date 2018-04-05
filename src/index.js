@@ -275,7 +275,7 @@ setInterval(() => {
     console.log("TIME TO LEAVE!!!!!!!!! FOR LUNCH!!!");
     findRestaurant(function (restaurantList) {
       console.log(restaurantList);
-      messageText = '<@here> It\'s time to leave for lunch! \n'
+      messageText = '<@here> :alert:  It\'s time to leave for lunch! :alert: \n'
       const message = {
         token: process.env.SLACK_ACCESS_TOKEN,
         response_type: "in_channel",
