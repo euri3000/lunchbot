@@ -107,7 +107,7 @@ app.post('/commands', (req, res) => {
     } else if (command[0] === 'join') {
       const isIn = isInGroup(req.body.user_name);
       if (isIn.toString() === 'true') {
-        messageText = 'You are already joined in today lunch group! \n Today lunch time is ' + lunchTime.getHours() + ":" + lunchTime.getMinutes() + '. \n with ' + lunchGorupUserListToStringUserName(lunchGorupUserList);
+        messageText = 'You are already joined in today lunch group! \n Today lunch time is ' + lunchTime.getHours() + ":" + lunchTime.getMinutes() + '. \n with ' + lunchGroupUserListToStringUserName(lunchGroupUserList);
         const message = {
           token: process.env.SLACK_ACCESS_TOKEN,
           channel: channel_id,
@@ -132,7 +132,7 @@ app.post('/commands', (req, res) => {
           channel: channel_id,
           text: messageText,
           attachments: encodeURI([{
-            "text": "Today's lunch time is " + lunchTime + ". \n with " + lunchGorupUserListToStringUserName(lunchGroupUserList)
+            "text": "Today's lunch time is " + lunchTime + ". \n with " + lunchGroupUserListToStringUserName(lunchGroupUserList)
           }])
         };
         axios.post('https://slack.com/api/chat.postMessage', qs.stringify(message))
@@ -230,15 +230,15 @@ function findRestaurant(callback) {
     });
 }
 
-function lunchGorupUserListToStringUserName(lunchGorupUserList) {
-  let lunchGorupUserListString = '';
-  lunchGorupUserList.map(function (user) {
-    if (lunchGorupUserListString !== '') {
-      lunchGorupUserListString = lunchGorupUserListString + ', ';
+function lunchGroupUserListToStringUserName(lunchGroupUserList) {
+  let lunchGroupUserListString = '';
+  lunchGroupUserList.map(function (user) {
+    if (lunchGroupUserListString !== '') {
+      lunchGroupUserListString = lunchGroupUserListString + ', ';
     }
-    lunchGorupUserListString = lunchGorupUserListString + "<@" + user.user_id + ">"
+    lunchGroupUserListString = lunchGroupUserListString + "<@" + user.user_id + ">"
   })
-  return lunchGorupUserListString;
+  return lunchGroupUserListString;
 }
 
 function getFormattedText(restaurantList) {
@@ -323,7 +323,7 @@ setInterval(() => {
           color: "#00ccec",
           author_name: "Lunch Bot",
           author_link: "https://www.kuuramen.com/",
-          text: "leaving in 10mins to " + where + " with " + lunchGorupUserListToStringUserName(lunchGroupUserList),
+          text: "leaving in 10mins to " + where + " with " + lunchGroupUserListToStringUserName(lunchGroupUserList),
         }]),
       };
       axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded';
