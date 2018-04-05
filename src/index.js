@@ -16,7 +16,7 @@ let lunchReminderTime = new Date();
 lunchReminderTime.setMinutes(lunchTime.getMinutes() + 1);
 let where = "Kuu ramen, John st."
 let channelId = '';
-let keyword = ['ramen', 'korean', 'japanese', 'pasta', 'bowl'];
+let keyword = ['ramen', 'korean', 'japanese', 'pasta', 'bowl', 'american', 'chinese', 'italian'];
 /*
  * Parse application/x-www-form-urlencoded && application/json
  */
