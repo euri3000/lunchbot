@@ -12,6 +12,7 @@ const app = express();
 let lunchGroupUserList = [];
 let lunchName = 'The best lunch ever';
 let lunchTime = new Date();
+let isLunchGroupCreated = false;
 let lunchReminderTime = new Date();
 // lunchReminderTime.setMinutes(lunchTime.getMinutes() + 1);
 let where = "Kuu ramen, John st."
@@ -246,21 +247,22 @@ function getFormattedText(restaurantList) {
   return restaurantListString;
 }
 function postConfirmationMessage(user, lunchName, lunchTime, channel_id) {
+  isLunchGroupCreated = true;
   messageText = '<@' + user.user_id + '> just created the lunch group ' + lunchName + '! Lunch starts at ' + lunchTime.getHours() + ":" + lunchTime.getMinutes() + '.';
-        const message = {
-          token: process.env.SLACK_ACCESS_TOKEN,
-          response_type: "in_channel",
-          channel: channel_id,
-          text: messageText,
-        };
-      axios.post('https://slack.com/api/chat.postMessage', qs.stringify(message))
-          .then((result) => {
-            debug('chat.postMessage: %o', result.data);
-            res.send('');
-          }).catch((err) => {
-            debug('chat.postMessage call failed: %o', err);
-            res.sendStatus(500);
-          });
+  const message = {
+    token: process.env.SLACK_ACCESS_TOKEN,
+    response_type: "in_channel",
+    channel: channel_id,
+    text: messageText,
+  };
+  axios.post('https://slack.com/api/chat.postMessage', qs.stringify(message))
+    .then((result) => {
+      debug('chat.postMessage: %o', result.data);
+      res.send('');
+    }).catch((err) => {
+      debug('chat.postMessage call failed: %o', err);
+      res.sendStatus(500);
+    });
 }
 /*
  * Endpoint to receive the dialog submission. Checks the verification token
@@ -302,8 +304,7 @@ setInterval(() => {
   const now = new Date();
   console.log('current getTime:', lunchReminderTime.getTime() - now.getTime());
   console.log('lunch name: ' + lunchName);
-  //TODO: check if group is created. 
-  if (now.getTime() > lunchReminderTime.getTime() && lunchGroupUserList.length > 0) {
+  if (isLunchGroupCreated && lunchReminderTime !== undefined && now.getTime() > lunchReminderTime.getTime() && lunchGroupUserList.length > 0) {
     console.log("TIME TO LEAVE!!!!!!!!! FOR LUNCH!!!");
     findRestaurant(function (restaurantList) {
       console.log(restaurantList);
@@ -324,6 +325,8 @@ setInterval(() => {
       axios.post('https://slack.com/api/chat.postMessage', qs.stringify(message))
         .then((result) => {
           lunchGroupUserList = [];
+          isLunchGroupCreated = false;
+          lunchTime = new Date();
           console.log('chat.postMessage: %o', result.data);
         }).catch((err) => {
           console.log(result.err);
