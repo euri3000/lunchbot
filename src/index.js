@@ -9,7 +9,8 @@ const debug = require('debug')('slash-command-template:index');
 
 const app = express();
 
-let lunchGorupUserList = [];
+let lunchGroupUserList = [];
+let lunchName = 'The best lunch ever';
 let lunchTime = new Date();
 let lunchReminderTime = new Date();
 lunchReminderTime.setMinutes(lunchTime.getMinutes() + 1);
@@ -65,7 +66,7 @@ app.post('/commands', (req, res) => {
       console.log('command: ' + command[0]);
       const inputLunchTime = command[1].replace('/PM', '/').replace('/AM', '/').replace('/pM', '/').replace('/aM', '/').split(":");
       lunchTime.setHours(inputLunchTime[0]);
-      lunchTime.setMinutes(inputLunchTim[1]);
+      lunchTime.setMinutes(inputLunchTime[1]);
       lunchReminderTime.setHours(inputLunchTime[0]);
       lunchReminderTime.setMinutes(inputLunchTime[1] - 5);
       
@@ -88,7 +89,7 @@ app.post('/commands', (req, res) => {
               label: 'Lunch name',
               type: 'text',
               name: 'name',
-              value: '',
+              value: lunchName,
               hint: 'What should today\'s lunch be called?',
             },
           ],
@@ -106,7 +107,7 @@ app.post('/commands', (req, res) => {
     } else if (command[0] === 'join') {
       const isIn = isInGroup(req.body.user_name);
       if (isIn.toString() === 'true') {
-        messageText = 'You are already joined in today lunch group! \n Today lunch time is " + lunchTime + ". \n with " + lunchGorupUserList';
+        messageText = 'You are already joined in today lunch group! \n Today lunch time is " + lunchTime + ". \n with " + lunchGroupUserList';
         const message = {
           token: process.env.SLACK_ACCESS_TOKEN,
           channel: channel_id,
@@ -122,16 +123,16 @@ app.post('/commands', (req, res) => {
             res.sendStatus(500);
           });
       } else {
-        lunchGorupUserList.push(user);
-        console.log(lunchGorupUserList);
-        messageText = '<@' + user.user_id + '> joined in today lunch group! :pizza:'
+        lunchGroupUserList.push(user);
+        console.log(lunchGroupUserList);
+        messageText = '<@' + user.user_id + '> joined the lunch group ' + lunchName + '! :pizza:'
         const message = {
           token: process.env.SLACK_ACCESS_TOKEN,
           response_type: "in_channel",
           channel: channel_id,
           text: messageText,
           attachments: encodeURI([{
-            "text": "Today lunch time is " + lunchTime + ". \n with " + lunchGorupUserList
+            "text": "Today's lunch time is " + lunchTime + ". \n with " + lunchGroupUserList
           }])
         };
         axios.post('https://slack.com/api/chat.postMessage', qs.stringify(message))
@@ -146,7 +147,7 @@ app.post('/commands', (req, res) => {
     } else if (command[0] === 'leave') {
       const isIn = isInGroup(req.body.user_name);
       if (isIn.toString() === 'true') {
-        lunchGorupUserList = lunchGorupUserList.filter(function (el) {
+        lunchGroupUserList = lunchGroupUserList.filter(function (el) {
           return el.user_name !== req.body.user_name;
         });
         messageText = '<@' + user.user_id + '> left from today lunch group! :wat2:'
@@ -197,7 +198,7 @@ app.post('/commands', (req, res) => {
 });
 
 function isInGroup(user_name) {
-  return lunchGorupUserList.map(function (el) {
+  return lunchGroupUserList.map(function (el) {
     if(el.user_name === user_name) {
       return true;
     };
@@ -254,8 +255,8 @@ app.post('/interactive-component', (req, res) => {
     // Slack know the command was received
     res.send('');
 
-    // create LunchBot instance
-    lunch.create(body.user.id, body.submission);
+    // update Lunch info
+    lunchName = body.submission.name;
   } else {
     debug('Token mismatch');
     res.sendStatus();
@@ -270,8 +271,9 @@ let i = 0;
 setInterval(() => {
   const now = new Date();
   console.log('current getTime:', lunchReminderTime.getTime() - now.getTime());
+  console.log('lunch name: ' + lunchName);
   //TODO: check if group is created. 
-  if (now.getTime() > lunchReminderTime.getTime() && lunchGorupUserList.length > 0) {
+  if (now.getTime() > lunchReminderTime.getTime() && lunchGroupUserList.length > 0) {
     console.log("TIME TO LEAVE!!!!!!!!! FOR LUNCH!!!");
     findRestaurant(function (restaurantList) {
       console.log(restaurantList);
@@ -285,13 +287,13 @@ setInterval(() => {
           color: "#00ccec",
           author_name: "Lunch Bot",
           author_link: "https://www.kuuramen.com/",
-          text: "leaving in 10mins to " + where + " with " + lunchGorupUserList,
+          text: "leaving in 10mins to " + where + " with " + lunchGroupUserList,
         }]),
       };
       axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded';
       axios.post('https://slack.com/api/chat.postMessage', qs.stringify(message))
         .then((result) => {
-          lunchGorupUserList = [];
+          lunchGroupUserList = [];
           console.log('chat.postMessage: %o', result.data);
         }).catch((err) => {
           console.log(result.err);
