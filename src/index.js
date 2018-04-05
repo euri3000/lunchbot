@@ -13,7 +13,7 @@ let lunchGroupUserList = [];
 let lunchName = 'The best lunch ever';
 let lunchTime = new Date();
 let lunchReminderTime = new Date();
-lunchReminderTime.setMinutes(lunchTime.getMinutes() + 1);
+// lunchReminderTime.setMinutes(lunchTime.getMinutes() + 1);
 let where = "Kuu ramen, John st."
 let channelId = '';
 let keyword = ['ramen', 'korean', 'japanese', 'pasta', 'bowl', 'american', 'chinese', 'italian'];
