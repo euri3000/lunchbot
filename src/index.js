@@ -40,17 +40,6 @@ app.post('/commands', (req, res) => {
   data = {
     token: process.env.SLACK_ACCESS_TOKEN,
   };
-  axios.get('https://slack.com/api/bots.info', {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          token: process.env.SLACK_ACCESS_TOKEN,
-        }
-      })
-    .then((result) => {
-      console.log('bots.info: %o', result.data);
-    }).catch((err) => {
-      onsole.log('bots.info call failed: %o', err);
-    });
   // check that the verification token matches expected value
   if (token === process.env.SLACK_VERIFICATION_TOKEN) {
     // create the dialog payload - includes the dialog structure, Slack API token,
@@ -98,11 +87,28 @@ app.post('/commands', (req, res) => {
           debug('dialog.open call failed: %o', err);
           res.sendStatus(500);
         });
-      setTimeout(function(){postConfirmationMessage(user, lunchName, lunchTime, channel_id);},10000);
+      // setTimeout(function(){postConfirmationMessage(user, lunchName, lunchTime, channel_id);},10000);
     } else if (command[0] === 'join') {
       const isIn = isInGroup(req.body.user_name);
+      if (isLunchGroupCreated.toString() === 'false') {
+        messageText = 'Lunch group is not created! You need to create a lunch group first!';
+        const message = {
+          token: process.env.SLACK_ACCESS_TOKEN,
+          channel: channel_id,
+          user: user.user_id,
+          text: messageText,
+        };
+        axios.post('https://slack.com/api/chat.postEphemeral', qs.stringify(message))
+          .then((result) => {
+            debug('chat.postEphemeral: %o', result.data);
+            res.send('');
+          }).catch((err) => {
+            debug('chat.postEphemeral call failed: %o', err);
+            res.sendStatus(500);
+          });        
+      }
       if (isIn.toString() === 'true') {
-        messageText = 'You are already joined in today lunch group! \n Today lunch time is ' + lunchTime.getHours() + ":" + lunchTime.getMinutes() + '. \n with ' + lunchGorupUserListToStringUserName(lunchGroupUserList);
+        messageText = 'You are already joined in today lunch group! \n Today lunch time is ' + lunchTime.getHours() + ":" + lunchTime.getMinutes() + '. \n with ' + lunchGroupUserListToStringUserName(lunchGroupUserList);
         const message = {
           token: process.env.SLACK_ACCESS_TOKEN,
           channel: channel_id,
@@ -127,7 +133,7 @@ app.post('/commands', (req, res) => {
           channel: channel_id,
           text: messageText,
           attachments: encodeURI([{
-            "text": "Today's lunch time is " + lunchTime + ". \n with " + lunchGorupUserListToStringUserName(lunchGroupUserList)
+            "text": "Today's lunch time is " + lunchTime + ". \n with " + lunchGroupUserListToStringUserName(lunchGroupUserList)
           }])
         };
         axios.post('https://slack.com/api/chat.postMessage', qs.stringify(message))
@@ -225,15 +231,15 @@ function findRestaurant(callback) {
     });
 }
 
-function lunchGorupUserListToStringUserName(lunchGorupUserList) {
-  let lunchGorupUserListString = '';
-  lunchGorupUserList.map(function (user) {
-    if (lunchGorupUserListString !== '') {
-      lunchGorupUserListString = lunchGorupUserListString + ', ';
+function lunchGroupUserListToStringUserName(lunchGroupUserList) {
+  let lunchGroupUserListString = '';
+  lunchGroupUserList.map(function (user) {
+    if (lunchGroupUserListString !== '') {
+      lunchGroupUserListString = lunchGroupUserListString + ', ';
     }
-    lunchGorupUserListString = lunchGorupUserListString + "<@" + user.user_id + ">"
+    lunchGroupUserListString = lunchGroupUserListString + "<@" + user.user_id + ">"
   })
-  return lunchGorupUserListString;
+  return lunchGroupUserListString;
 }
 
 function getFormattedText(restaurantList) {
@@ -247,8 +253,7 @@ function getFormattedText(restaurantList) {
   return restaurantListString;
 }
 function postConfirmationMessage(user, lunchName, lunchTime, channel_id) {
-  isLunchGroupCreated = true;
-  messageText = '<@' + user.user_id + '> just created the lunch group ' + lunchName + '! Lunch starts at ' + lunchTime.getHours() + ":" + lunchTime.getMinutes() + '.';
+  messageText = '<@' + user.id + '> just created the lunch group ' + lunchName + '! Lunch starts at ' + lunchTime.getHours() + ":" + lunchTime.getMinutes() + '.';
   const message = {
     token: process.env.SLACK_ACCESS_TOKEN,
     response_type: "in_channel",
@@ -270,7 +275,7 @@ function postConfirmationMessage(user, lunchName, lunchTime, channel_id) {
  */
 app.post('/interactive-component', (req, res) => {
   const body = JSON.parse(req.body.payload);
-
+  console.log(body);
   // check that the verification token matches expected value
   if (body.token === process.env.SLACK_VERIFICATION_TOKEN) {
     debug(`Form submission received: ${body.submission.trigger_id}`);
@@ -287,7 +292,16 @@ app.post('/interactive-component', (req, res) => {
     var hours = parts[0];
     lunchTime.setHours(hours);
     lunchTime.setMinutes(minutes);
+    lunchReminderTime.setHours(hours);
+    lunchReminderTime.setMinutes(minutes - 5);
+    lunchReminderTime.setSeconds(0);
     console.log('Lunch time: ' + lunchTime);
+    console.log('Lunch reminder time: ' + lunchReminderTime);
+
+    setTimeout(function () {
+      postConfirmationMessage(body.user, lunchName, lunchTime, body.channel.id);
+    }, 2000);
+    isLunchGroupCreated = true;
 
   } else {
     debug('Token mismatch');
@@ -302,13 +316,17 @@ app.listen(process.env.PORT, () => {
 let i = 0;
 setInterval(() => {
   const now = new Date();
-  console.log('current getTime:', lunchReminderTime.getTime() - now.getTime());
-  console.log('lunch name: ' + lunchName);
-  if (isLunchGroupCreated && lunchReminderTime !== undefined && now.getTime() > lunchReminderTime.getTime() && lunchGroupUserList.length > 0) {
+  console.log("now: " + now)
+  console.log("lunchReminderTime : " + lunchReminderTime)
+  console.log("now.getTime() - lunchReminderTime.getTime() : " + (Math.floor((now.getTime() - lunchReminderTime.getTime())/ 1000)));
+  console.log("now - lunchReminderTime : " + (Math.floor((now - lunchReminderTime )/ 1000)));
+  if (isLunchGroupCreated.toString() === 'true' && (Math.floor((now - lunchReminderTime) / 1000)) >= 0 && lunchGroupUserList.length > 0) {
     console.log("TIME TO LEAVE!!!!!!!!! FOR LUNCH!!!");
     findRestaurant(function (restaurantList) {
       console.log(restaurantList);
-      messageText = lunchGorupUserListToStringUserName(lunchGroupUserList)+ ' :alert:  It\'s time to leave for lunch! :alert: \n'
+      console.log(lunchGroupUserListToStringUserName(lunchGroupUserList))
+      messageText = '@here :alert:  It\'s time to leave for lunch! :alert: \n'
+      // messageText = lunchGroupUserListToStringUserName(lunchGroupUserList) + ' :alert:  It\'s time to leave for lunch! :alert: \n'
       const message = {
         token: process.env.SLACK_ACCESS_TOKEN,
         response_type: "in_channel",
@@ -318,7 +336,7 @@ setInterval(() => {
           color: "#00ccec",
           author_name: "Lunch Bot",
           author_link: "https://www.kuuramen.com/",
-          text: "leaving in 10mins to " + where + " with " + lunchGorupUserListToStringUserName(lunchGroupUserList),
+          text: "leaving in 10mins to " + where + " with " + lunchGroupUserListToStringUserName(lunchGroupUserList),
         }]),
       };
       axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded';
