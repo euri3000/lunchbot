@@ -1,13 +1,13 @@
 {
-  "name": "slash-command-blueprint",
+  "name": "Lunck Bot",
   "private": true,
   "version": "1.0.0",
-  "description": "Sample Slack app that responds to an Slack slash command with an interactive message",
+  "description": "Lunch bot to share the lunch places around my office",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "DEBUG=slash-command-template node src/index.js"
   },
-  "author": "Sachin Ranchod <sranchod@slack-corp.com>",
+  "author": "Euri Kot",
   "engines": {
     "node": ">=4.2.0",
     "npm": ">=2.14.7"
